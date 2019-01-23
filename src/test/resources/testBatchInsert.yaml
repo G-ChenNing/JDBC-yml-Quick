@@ -1,0 +1,7 @@
+- id : testBatchInsert
+  type : batch
+  sqls : 
+      batchInsertToTest :
+         sql : 'insert into TEST values(?,?)'
+         params : id,name
+ 

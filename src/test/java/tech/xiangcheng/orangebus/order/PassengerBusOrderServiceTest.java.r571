@@ -1,0 +1,285 @@
+package tech.xiangcheng.orangebus.order;
+
+import static org.junit.Assert.*;
+
+import java.sql.SQLException;
+
+import javax.transaction.Transactional;
+
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import tech.xiangcheng.orangebus.account.domain.PersonalAccount;
+import tech.xiangcheng.orangebus.account.service.PersonalAccountService;
+import tech.xiangcheng.orangebus.address.domain.SysArea;
+import tech.xiangcheng.orangebus.address.service.SysAreaService;
+import tech.xiangcheng.orangebus.company.domain.BusSchedule;
+import tech.xiangcheng.orangebus.company.domain.CoachNumber;
+import tech.xiangcheng.orangebus.company.domain.Station;
+import tech.xiangcheng.orangebus.company.domain.SysOffice;
+import tech.xiangcheng.orangebus.company.service.BusScheduleService;
+import tech.xiangcheng.orangebus.company.service.CoachNumberService;
+import tech.xiangcheng.orangebus.company.service.StationService;
+import tech.xiangcheng.orangebus.company.service.SysOfficeService;
+import tech.xiangcheng.orangebus.leaf.util.json.JsonObj;
+import tech.xiangcheng.orangebus.leaf.util.random.RandomUtil;
+import tech.xiangcheng.orangebus.order.domain.PassengerBusOrder;
+import tech.xiangcheng.orangebus.order.domain.enumType.OrderCheckStatus;
+import tech.xiangcheng.orangebus.order.domain.enumType.OrderPayStatus;
+import tech.xiangcheng.orangebus.order.service.PassengerBusOrderService;
+import tech.xiangcheng.orangebus.parent.domain.Constant;
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringBootTest
+public class PassengerBusOrderServiceTest {
+
+	@Autowired
+	PassengerBusOrderService passengerBusOrderSevcie;
+	@Autowired
+	BusScheduleService busScheduleService;
+	@Autowired
+	CoachNumberService coachNumberService;
+	@Autowired
+	SysAreaService sysAreaService;
+	@Autowired
+	StationService stationService;
+	@Autowired
+	SysOfficeService sysOfficeService;
+	@Autowired
+	PersonalAccountService personalAccountService;
+
+	@Test
+	public void testEntityManager() {
+		String vehicleScheduleId = "65fa044ffd404240afbae9b13c9605ca";
+		JsonObj jo = passengerBusOrderSevcie.orderServiceType(vehicleScheduleId, "2");
+		System.out.println(jo.toJson());
+	}
+	
+	@Test
+	public void testGetOrderMsg() {
+		JsonObj jo = passengerBusOrderSevcie.getOrderStatisticMessagee("65fa044ffd404240afbae9b13c9605ca");
+		assertEquals(jo.getProperty("checkNum"), new Long(0));
+		assertEquals(jo.getProperty("payNum"), new Long(4));
+	}
+	
+	
+	@Transactional
+	@Test
+	public void testSave() {
+		BusSchedule busSchedule = new BusSchedule();
+		CoachNumber coachNumber = new CoachNumber();
+		Station station = new Station();
+		SysArea sysArea = new SysArea();
+		sysArea = sysAreaService.save(sysArea);
+		station.setSysArea(sysArea);
+		station = stationService.save(station);
+//		coachNumber.setOriginalStation(station);
+//		coachNumber.setTerminalStation(station);
+		SysOffice sysOffice = new SysOffice();
+		sysOffice.setSysArea(sysArea);
+		sysOffice.setGrade("1");
+		sysOffice.setType("1");
+		sysOffice = sysOfficeService.save(sysOffice);
+		coachNumber.setSysOffice(sysOffice);
+		coachNumber = coachNumberService.save(coachNumber);
+		busSchedule.setCoachNumber(coachNumber);
+		busSchedule.setDelFlag(Constant.NOT_DELTED);
+		BusSchedule savedBusSchedule = busScheduleService.save(busSchedule);
+		
+		String phone = "123" + RandomUtil.getNonceStr();
+		PersonalAccount personalAccount = new PersonalAccount(phone,null);
+		personalAccount = personalAccountService.save(personalAccount);
+		
+		PassengerBusOrder order = new PassengerBusOrder();
+		order.setBusSchedule(savedBusSchedule);
+		order.setBuyer(personalAccount);
+		order.setAmount(3);
+		order.setTotal(1.0);
+//		order.setTotal(new BigDecimal(2));
+		order = passengerBusOrderSevcie.save(order);
+		
+		assertNotNull(order);
+	}
+	@Test
+	@Transactional
+	public void testGetOrderById() {
+		BusSchedule busSchedule = new BusSchedule();
+		CoachNumber coachNumber = new CoachNumber();
+		Station station = new Station();
+		SysArea sysArea = new SysArea();
+		sysArea = sysAreaService.save(sysArea);
+		station.setSysArea(sysArea);
+		station = stationService.save(station);
+//		coachNumber.setOriginalStation(station);
+//		coachNumber.setTerminalStation(station);
+		SysOffice sysOffice = new SysOffice();
+		sysOffice.setSysArea(sysArea);
+		sysOffice.setGrade("1");
+		sysOffice.setType("1");
+		sysOffice = sysOfficeService.save(sysOffice);
+		coachNumber.setSysOffice(sysOffice);
+		coachNumber = coachNumberService.save(coachNumber);
+		busSchedule.setCoachNumber(coachNumber);
+		busSchedule.setDelFlag(Constant.NOT_DELTED);
+		BusSchedule savedBusSchedule = busScheduleService.save(busSchedule);
+		
+		String phone = "123" + RandomUtil.getNonceStr();
+		PersonalAccount personalAccount = new PersonalAccount(phone,null);
+		personalAccount = personalAccountService.save(personalAccount);
+		
+		PassengerBusOrder order = new PassengerBusOrder();
+		order.setBusSchedule(savedBusSchedule);
+		order.setBuyer(personalAccount);
+		order.setAmount(3);
+		order.setTotal(1.0);
+//		order.setTotal(new BigDecimal(2));
+		order = passengerBusOrderSevcie.save(order);
+		assertNotNull(order);
+		assertNotNull(passengerBusOrderSevcie.getOrderById(order.getId()));
+	}
+
+	
+//	@Test
+//	@Transactional
+//	public void testChangerPayStatus() {
+//		BusSchedule busSchedule = new BusSchedule();
+//		CoachNumber coachNumber = new CoachNumber();
+//		Station station = new Station();
+//		SysArea sysArea = new SysArea();
+//		sysArea = sysAreaService.save(sysArea);
+//		station.setSysArea(sysArea);
+//		station = stationService.save(station);
+////		coachNumber.setOriginalStation(station);
+////		coachNumber.setTerminalStation(station);
+//		SysOffice sysOffice = new SysOffice();
+//		sysOffice.setSysArea(sysArea);
+//		sysOffice.setGrade("1");
+//		sysOffice.setType("1");
+//		sysOffice = sysOfficeService.save(sysOffice);
+//		coachNumber.setSysOffice(sysOffice);
+//		coachNumber = coachNumberService.save(coachNumber);
+//		busSchedule.setCoachNumber(coachNumber);
+//		busSchedule.setDelFlag(Constant.NOT_DELTED);
+//		BusSchedule savedBusSchedule = busScheduleService.save(busSchedule);
+//		
+//		String phone = "123" + RandomUtil.getNonceStr();
+//		PersonalAccount personalAccount = new PersonalAccount(phone);
+//		personalAccount = personalAccountService.save(personalAccount);
+//		
+//		PassengerBusOrder order = new PassengerBusOrder();
+//		order.setBusSchedule(savedBusSchedule);
+//		order.setBuyer(personalAccount);
+//		order.setAmount(3);
+//		order.setTotal(2.0);
+//		order = passengerBusOrderSevcie.save(order);
+//		
+//		String statusToBeChanged = "3";
+//		assertFalse(passengerBusOrderSevcie.changePayStatus(statusToBeChanged, order.getId()));
+//		statusToBeChanged = "1";
+//		assertTrue(passengerBusOrderSevcie.changePayStatus(statusToBeChanged, order.getId()));
+//		order = passengerBusOrderSevcie.getOrderById(order.getId());
+////		assertEquals("1", order.getPayStatus());
+//		statusToBeChanged = "0";
+//		assertTrue(passengerBusOrderSevcie.changePayStatus(statusToBeChanged, order.getId()));
+//		order = passengerBusOrderSevcie.getOrderById(order.getId());
+////		assertEquals("0", order.getPayStatus());
+//	}
+	
+	
+	@Test
+//	@Ignore("需数据库中有数据")
+	public void testGetSumSpentByUserId() {
+		Double sum = passengerBusOrderSevcie.getSumSpentByUserId("94907d30-f009-4806-bcb4-3960d20dfe26");
+		assertNotNull(sum);
+		assertTrue(sum > 0);
+	}
+	@Test
+//	@Transactional
+//	@Ignore("需数据库中有数据")
+	public void testSetPaid() {
+		String id = "2004c04e-57df-4a62-b4d4-b36e9e6d54c1";
+		passengerBusOrderSevcie.setUnPaid(id);
+		PassengerBusOrder order = passengerBusOrderSevcie.getOrderById(id);
+		assertEquals(OrderPayStatus.UNPAID.getValue(), order.getConfigPayStatus().getId());
+		assertEquals(-1, passengerBusOrderSevcie.setPaid(""));
+		assertEquals(0, passengerBusOrderSevcie.setPaid(id));
+		assertEquals(-3, passengerBusOrderSevcie.setPaid(id));
+		order = passengerBusOrderSevcie.getOrderById(id);
+		assertEquals(OrderPayStatus.PAID.getValue(), order.getConfigPayStatus().getId());
+	}
+	@Test
+//	@Ignore("需数据库中有数据")
+	public void testSetUnPaid() {
+		passengerBusOrderSevcie.setPaid("2004c04e-57df-4a62-b4d4-b36e9e6d54c1");
+		assertEquals(-1, passengerBusOrderSevcie.setUnPaid(""));
+		assertEquals(0, passengerBusOrderSevcie.setUnPaid("2004c04e-57df-4a62-b4d4-b36e9e6d54c1"));
+		assertEquals(-3, passengerBusOrderSevcie.setUnPaid("2004c04e-57df-4a62-b4d4-b36e9e6d54c1"));
+	}
+	
+//	@Transactional
+	@Test
+//	@Ignore("需数据库中有数据")
+	public void testSetChecked() {
+		String id = "2004c04e-57df-4a62-b4d4-b36e9e6d54c1";
+		passengerBusOrderSevcie.setOrderUnChecked(id);
+		assertEquals(-1, passengerBusOrderSevcie.setOrderChecked(""));
+		int setPaid = passengerBusOrderSevcie.setPaid(id);
+		if (setPaid != -3) {
+			assertEquals(0, setPaid);
+		}
+		assertEquals(0, passengerBusOrderSevcie.setOrderChecked(id));
+		PassengerBusOrder order = passengerBusOrderSevcie.getOrderById(id);
+		assertEquals(OrderCheckStatus.CHECK.getValue(), order.getConfigCheckStatus().getId());
+	}
+	
+//	@Transactional
+	@Test
+//	@Ignore("需数据库中有数据")
+	public void testSetUnChecked() {
+		String id = "2004c04e-57df-4a62-b4d4-b36e9e6d54c1";
+		passengerBusOrderSevcie.setOrderChecked(id);
+		assertEquals(-1, passengerBusOrderSevcie.setOrderUnChecked(""));
+		assertEquals(0, passengerBusOrderSevcie.setOrderUnChecked(id));
+		PassengerBusOrder order = passengerBusOrderSevcie.getOrderById(id);
+		assertEquals(OrderCheckStatus.UNCHECK.getValue(), order.getConfigCheckStatus().getId());
+	}
+	@Transactional
+	@Test
+	public void testSaveNew() {
+		assertNull(passengerBusOrderSevcie.save(null, "", "", 10));
+		assertNotNull(passengerBusOrderSevcie.save(null, "00322d81edf040218f11267368ac217d", "221e49a97dfb4c1dbe3393c38cf8caef", 6));
+	}
+//	@Transactional
+	@Test
+//	@Ignore("需数据库中有数据")
+	public void testChangeOrderCheckStatus() {
+		String id = "2004c04e-57df-4a62-b4d4-b36e9e6d54c1";
+		passengerBusOrderSevcie.setOrderUnChecked(id);
+//		assertEquals(-1, passengerBusOrderSevcie.changeOrderCheckStatus("", OrderCheckStatus.CHECK.getValue()));
+		passengerBusOrderSevcie.setUnPaid(id);
+//		assertEquals(-2, passengerBusOrderSevcie.changeOrderCheckStatus(id, OrderCheckStatus.CHECK.getValue()));
+		assertEquals(0, passengerBusOrderSevcie.setPaid(id));
+//		assertEquals(0, passengerBusOrderSevcie.changeOrderCheckStatus(id, OrderCheckStatus.CHECK.getValue()));
+//		assertEquals(-4, passengerBusOrderSevcie.changeOrderCheckStatus(id, OrderCheckStatus.CHECK.getValue()));
+//		assertEquals(0, passengerBusOrderSevcie.changeOrderCheckStatus(id, OrderCheckStatus.UNCHECK.getValue()));
+		PassengerBusOrder order = passengerBusOrderSevcie.getOrderById(id);
+		assertEquals(OrderCheckStatus.UNCHECK.getValue(), order.getConfigCheckStatus().getId());
+	}
+	
+	@Test
+	public void testRefundQuery() throws SQLException {
+		String orderCode = "OD1499828350";
+		JsonObj jo = passengerBusOrderSevcie.refundMoney(orderCode);
+		System.out.println(jo.toJson());
+		passengerBusOrderSevcie.refundOrder(orderCode);
+	}
+	@Ignore
+	@Test
+	public void testRefundOrder() throws SQLException {
+		String orderCode = "OD1499828350";
+		passengerBusOrderSevcie.refundOrder(orderCode);
+	}
+	
+}

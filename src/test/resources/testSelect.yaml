@@ -1,0 +1,10 @@
+- id : testSelect
+  type : select
+  sqls :
+      getName :
+             sql : 'select name from test'
+#             params : id
+             field_names : name
+      getAmount :
+             sql : 'select count(*) from test'
+             field_names : amount

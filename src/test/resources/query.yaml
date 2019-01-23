@@ -1,0 +1,19 @@
+# field_names 之中不能有任何空格，否则会报错！！！！！！！！！！！！！！！
+- id : test
+  type : select
+  sqls : 
+      sql1 :
+         sql : 'select id, code from passenger_bus_order'
+         field_names : id,code 
+ 
+- id : get_schedule_vehicle_spend
+  type : select
+  sqls :
+      orderMsg :
+          sql : 'select id, code from passenger_bus_order where pay_method = ?'
+          params : pay_method
+          field_names : id,code 
+      orderMsg2 :
+          sql : 'select id, code from passenger_bus_order where pay_method = ?'
+          params : pay_method
+          field_names : id,code 

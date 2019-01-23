@@ -1,0 +1,98 @@
+- id : forSendCheckOrderSuccess
+  type : select
+  sqls : 
+      orderDetail :
+         sql : 'select a.id,p.code,account_level,total,amount,openid 
+                 from passenger_bus_order as p left join wxaccount as w 
+                 on p.buyer_id = w.personal_account_id
+                 join personal_account  as a on p.buyer_id = a.id  
+                 where p.id = ?'
+         params : id
+         field_names : id,code,account_level,total,amount,openid 
+- id : refundQuery
+  type : select
+  sqls :
+      refundQuery :
+             sql : 'select total, openid, original_date from passenger_bus_order as p join wxaccount as w 
+                    on p.buyer_id = w.personal_account_id where code = ? and pay_status = 1'
+             params : code
+             field_names : total,openid,original_date
+- id : refundOrder
+  type : update
+  sqls :
+      refundOrder :
+             sql : 'update passenger_bus_order set pay_status=4 where code = ? '
+             params : code
+      handleCoupon:
+             sql : 'update coupon_sn set remain_times = remain_times + 1
+                     where id = (select coupon_sn_id from passenger_bus_order where code = ?)'
+             params : code
+- id : selectSignInCouponsn
+  type : select
+  sqls :
+      selectSignInCouponsn :
+             sql : 'SELECT remain_times,s.id
+                     FROM coupon_sn AS s join coupon_group AS g
+                     ON s.coupon_group_id = g.id
+                     WHERE sign_in_send = 1
+                     AND personal_account_id = ?'
+             params : personal_account_id
+             field_names : remain_times,coupon_sn_id
+- id : updateSignInCouponsn
+  type : batch
+  sqls :
+      updateSignInCouponsn :
+             sql : 'UPDATE coupon_sn
+                     SET remarks = ?, remain_times = 0
+                     WHERE id = ?'
+             params : remain_times,coupon_sn_id
+- id : configRefund
+  type : select
+  sqls : 
+      configRefund :
+          sql : 'select sdv.value from sys_dict_value sdv, sys_dict_type sdt where sdv.dict_type_id = sdt.id and sdt.type="wx_auto_refund" and sdv.label= "if_auto_refund"'
+          field_names : value
+#下述获取余票方法已弃用，使用id为remainTickets的sql
+- id : getRemainTickets
+  type : select
+  sqls : 
+      seat_num :
+          sql : 'SELECT IFNULL(seat_num, 0) FROM vehicle 
+                  WHERE id = (SELECT vehicle_id FROM schedule_vehicle WHERE id = ?)' 
+          field_names : seat_num
+          params : scheduleVehicleId
+      paid_num :
+          sql : 'SELECT IFNULL(SUM(amount), 0) FROM passenger_bus_order WHERE schedule_vehicle_id = ? AND pay_status = 1'
+          field_names : paid_num
+          params : scheduleVehicleId
+      can_pay_num :
+          sql : 'SELECT IFNULL(SUM(amount), 0) FROM passenger_bus_order WHERE schedule_vehicle_id = ? AND pay_status = 0 AND (UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(create_date)) < ?'
+          field_names : can_pay_num
+          params : scheduleVehicleId,validSeconds
+      presell_num :
+          sql : 'SELECT IFNULL(SUM(amount), 0) FROM pre_sale WHERE schedule_vehicle_id = ? and status = 0' 
+          field_names : presell_num
+          params : scheduleVehicleId
+- id : remainTickets
+  type : select 
+  sqls : 
+      remainTickets : 
+          sql : 'SELECT (case when a > b then c - a else c - b end) AS remain
+                  FROM
+                  (SELECT (SELECT IFNULL(sum(amount), 0) FROM `passenger_bus_order`
+                  WHERE schedule_vehicle_id = ? AND (pay_status = 1 OR (pay_status = 0 AND pay_method = 1 AND (UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(create_date)) < ?)) 
+                  )  AS a,
+                 (SELECT IFNULL(sum(amount), 0)
+                 FROM pre_sale
+                 WHERE schedule_vehicle_id = ? AND `status` != 2
+                 ) + (SELECT IFNULL(sum(amount), 0)
+                FROM passenger_bus_order 
+                WHERE schedule_vehicle_id = ? AND (pay_status = 1 OR (pay_status = 0 AND pay_method = 1 AND (UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(create_date)) < ?))    
+                ) AS b,
+                (SELECT IFNULL(seat_num, 0)
+                FROM vehicle
+                WHERE id = (SELECT vehicle_id FROM schedule_vehicle WHERE id = ?)
+                ) AS c
+                ) t'
+          field_names : remain_num
+          params : scheduleVehicleId,validSeconds,scheduleVehicleId,scheduleVehicleId,validSeconds,scheduleVehicleId
